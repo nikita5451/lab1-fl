@@ -1,0 +1,10 @@
+seed = 1
+num-clients = 4
+num-rounds = 5
+local-epochs = 3
+lr = 0.3
+batch = 16
+clip-norm = 0.0
+board-partition = 0
+board-backend = "serial"
+results-dir = "results/ref-board"

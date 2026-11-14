@@ -1,0 +1,45 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "fl-lab"
+version = "1.0.0"
+description = "ЛР1: федеративне навчання на ESP32 (Flower)"
+requires-python = ">=3.11"
+dependencies = [
+    "flwr[simulation]==1.20.0",
+    "numpy==2.2.6",
+    "pyserial==3.5",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["."]
+
+[tool.flwr.app]
+publisher = "student"
+
+[tool.flwr.app.components]
+serverapp = "fl_lab.server_app:app"
+clientapp = "fl_lab.client_app:app"
+
+[tool.flwr.app.config]
+seed = 1
+num-clients = 4
+num-rounds = 5
+local-epochs = 3
+lr = 0.3
+batch = 16
+clip-norm = 0.0
+board-partition = -1          
+board-backend = "serial"
+board-port = ""
+board-proc = ""
+results-dir = "results/flwr-virtual"
+repo-root = ""              
+
+[tool.flwr.federations]
+default = "local-simulation"
+
+[tool.flwr.federations.local-simulation]
+options.num-supernodes = 4

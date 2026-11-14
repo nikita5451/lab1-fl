@@ -38,7 +38,7 @@ flash-data: $(CORE)
 monitor: $(CORE)
 	$(VPY) -m serial.tools.miniterm $(PORT) 115200
 
-selftest:
+selftest: $(CORE)
 	cd firmware/host_test && $(MAKE)
 	cd host && PYTHONPATH=. $(VPY) -m fl_lab.fl_model_ref
 

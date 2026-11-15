@@ -106,6 +106,15 @@ static int handle_diag(const char *cmd)
     return 1;
 }
 
+static void say_boot(void)
+{
+    esp_chip_info_t ci;
+    esp_chip_info(&ci);
+    say("BOOT idf=%s chip=%s rev=%d.%d heap_free=%u fw=%s", esp_get_idf_version(),
+        chip_name(ci.model), ci.revision / 100, ci.revision % 100,
+        (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL), FW_VERSION);
+}
+
 static void fl_task(void *arg)
 {
     (void)arg;
@@ -114,11 +123,7 @@ static void fl_task(void *arg)
     cfg.tx_buffer_size = 2048;
     usb_serial_jtag_driver_install(&cfg);
 
-    esp_chip_info_t ci;
-    esp_chip_info(&ci);
-    say("BOOT idf=%s chip=%s rev=%d.%d heap_free=%u fw=%s", esp_get_idf_version(),
-        chip_name(ci.model), ci.revision / 100, ci.revision % 100,
-        (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL), FW_VERSION);
+    say_boot();
 
     const uint8_t *blob = NULL;
     size_t len = 0;
@@ -135,18 +140,36 @@ static void fl_task(void *arg)
 
     size_t pos = 0;
     int overflow = 0;
+    int host_seen = 0;
+    int64_t last_boot_ms = esp_timer_get_time() / 1000;
     uint8_t rx[128];
     for (;;) {
         int n = usb_serial_jtag_read_bytes(rx, sizeof rx, pdMS_TO_TICKS(50));
+        if (n > 0) {
+            host_seen = 1;
+        } else if (!host_seen) {
+            const int64_t now_ms = esp_timer_get_time() / 1000;
+            if (now_ms - last_boot_ms >= 1500) {
+                say_boot();
+                last_boot_ms = now_ms;
+            }
+        }
         for (int i = 0; i < n; i++) {
             const char c = (char)rx[i];
             if (c == '\n') {
                 g_line[pos] = '\0';
+                while (pos > 0 && (g_line[pos - 1] == '\r' || g_line[pos - 1] == ' ')) {
+                    g_line[--pos] = '\0';
+                }
                 if (overflow) {
                     say("ERR line_too_long");
+                } else if (g_line[0] == '\0') {
+                    /* порожній рядок ігноруємо */
+                } else if (handle_diag(g_line)) {
+                    /* help/info/heap/restart працюють завжди */
                 } else if (rc != 0) {
                     say("ERR no_data");
-                } else if (!handle_diag(g_line)) {
+                } else {
                     fl_proto_handle_line(&g_proto, g_line);
                 }
                 pos = 0;

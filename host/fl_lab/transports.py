@@ -6,6 +6,7 @@ import threading
 
 
 class BoardUnavailable(RuntimeError):
+    pass
 
 class SerialTransport:
     def __init__(self, port: str, baud: int = 115200, timeout: float = 0.5) -> None:

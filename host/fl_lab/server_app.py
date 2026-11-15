@@ -7,10 +7,22 @@ from flwr.serverapp import Grid, ServerApp
 from flwr.serverapp.strategy import FedAvg
 
 from . import fl_model_ref as ref
-from .fedlib import GlobalEvaluator, RunLogs, run_dir
+from .fedlib import GlobalEvaluator, RunLogs, run_dir, fedavg
 
 app = ServerApp()
 
+class DeterministicFedAvg(FedAvg):
+    def aggregate_train(self, server_round, replies):
+        valid, _ = self._check_and_log_replies(replies, is_train=True)
+        if not valid:
+            return None, None
+        valid = sorted(valid, key=lambda m: int(m.content["metrics"]["partition-id"]))
+        res = [(m.content["arrays"].to_numpy_ndarrays(),
+                int(m.content["metrics"]["num-examples"])) for m in valid]
+        arrays = ArrayRecord(fedavg(res))
+        metrics = self.train_metrics_aggr_fn([m.content for m in valid],
+                                             self.weighted_by_key)
+        return arrays, metrics
 
 @app.main()
 def main(grid: Grid, context: Context) -> None:
@@ -29,7 +41,7 @@ def main(grid: Grid, context: Context) -> None:
         rec = evaluator(server_round, arrays.to_numpy_ndarrays())
         return MetricRecord({"accuracy": rec["acc"], "loss": rec["loss"]})
 
-    strategy = FedAvg(
+    strategy = DeterministicFedAvg(
         fraction_train=1.0,
         fraction_evaluate=0.0,            
         min_train_nodes=n,

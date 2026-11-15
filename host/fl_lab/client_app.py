@@ -18,7 +18,8 @@ def train(msg: Message, context: Context) -> Message:
     new, m = client_round(cfg, pid, server_round, arrays)
 
     metrics = MetricRecord({
-        "num-examples": int(m["n"]),          
+        "num-examples": int(m["n"]),
+        "partition-id": pid,
         "train_acc": float(m["train_acc"]),
         "val_acc": float(m["val_acc"]),
         "dw": float(m["dw"]),

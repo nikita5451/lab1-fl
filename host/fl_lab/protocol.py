@@ -6,8 +6,9 @@ import zlib
 from pathlib import Path
 
 from . import fl_model_ref as ref
+from .transports import SerialTransport
 
-W_LINE_BYTES = 768            # 1024 символи base64 = 768 байтів
+W_LINE_BYTES = 768            
 
 
 class ProtocolError(RuntimeError):
@@ -31,21 +32,33 @@ class BoardClient:
         self.t = transport
         self.timeout = timeout
         self.label = label
-        self.events: list[str] = []         # "EV ..." рядки пристрою
-        self.skipped: list[str] = []        # сторонні рядки (логи прошивки)
-        self.bytes_tx = 0                   # усі байти хост -> пристрій
-        self.bytes_rx = 0                   # усі байти пристрій -> хост
-        self.w_tx = 0                       # байти ВАГІВ хост -> пристрій
-        self.w_rx = 0                       # байти ВАГІВ пристрій -> хост
+        self.events: list[str] = []         
+        self.skipped: list[str] = []        
+        self.bytes_tx = 0                   
+        self.bytes_rx = 0                   
+        self.w_tx = 0                       
+        self.w_rx = 0                       
         self._tr = open(transcript, "a", buffering=1) if transcript else None
         self._t0 = time.monotonic()
+        self._last_cmd = ""
+        if isinstance(transport, SerialTransport):
+            self.sync()
 
     def _log(self, direction: str, text: str) -> None:
         if self._tr:
             shown = text if not text.startswith("W ") else f"W[{len(text) - 2}] {text[2:18]}..."
             self._tr.write(f"{time.monotonic() - self._t0:9.3f} {self.label} {direction} {shown}\n")
 
+    def sync(self, quiet: float = 0.4) -> None:
+        while True:
+            line = self._recv(quiet)
+            if line is None:
+                return
+            self.skipped.append(line)
+
     def _send(self, line: str) -> None:
+        if not line.startswith("W "):
+            self._last_cmd = line.split()[0].lower()
         self.t.write_line(line)
         self.bytes_tx += len(line) + 1
         self._log(">", line)
@@ -67,6 +80,9 @@ class BoardClient:
             if line.startswith("OK "):
                 body = line[3:]
                 cmd, _, rest = body.partition(" ")
+                if self._last_cmd and cmd.lower() != self._last_cmd:
+                    self.skipped.append(line)
+                    continue
                 f = parse_fields(rest)
                 f["_cmd"] = cmd
                 return f
@@ -75,7 +91,7 @@ class BoardClient:
             if line.startswith("EV "):
                 self.events.append(line)
             else:
-                self.skipped.append(line)       # логи/шум: пропускаємо
+                self.skipped.append(line)      
         raise ProtocolError(f"{what}: таймаут {self.timeout}s")
 
     def _read_w_lines(self, n: int) -> bytes:
@@ -146,7 +162,6 @@ class BoardClient:
         return {k: int(v) for k, v in f.items() if k != "_cmd"}
 
     def reset(self) -> int:
-        """Холодний старт пристрою (RESET): той самий стан перед кожним прогоном."""
         self._send("RESET")
         return int(self._read_final("RESET")["crc"], 16)
 
@@ -161,14 +176,13 @@ class BoardClient:
 
     def train_round(self, arrays, epochs: int, lr: float, batch: int, seed: int,
                     clip: float = 0.0) -> tuple[list, dict]:
-        """INFO -> SETW -> FIT -> GETW -> EVAL; повертає нові ваги й метрики."""
         info = self.info()
         blob_in = ref.pack(arrays)
         self.setw(blob_in)
         fit = self.fit(epochs, lr, batch, seed, clip)
         new = ref.unpack(self.getw())
         ev = self.eval()
-        dw_host = ref.delta_norm(new, arrays)           # порахована на ХОСТІ
+        dw_host = ref.delta_norm(new, arrays)           
         metrics = {
             "n": int(fit["n"]), "n_total": int(info["n"]),
             "train_loss": fit["loss"], "train_acc": fit["acc"],

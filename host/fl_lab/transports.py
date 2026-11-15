@@ -17,8 +17,8 @@ class SerialTransport:
             ser.port = port
             ser.baudrate = baud
             ser.timeout = timeout
-            ser.dtr = False
-            ser.rts = False
+            ser.dtr = True
+            ser.rts = True
             ser.open()
         except Exception as exc: 
             raise BoardUnavailable(f"не вдалося відкрити {port}: {exc}") from exc

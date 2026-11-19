@@ -26,7 +26,8 @@ int fl_model_init(fl_model_t *m, int n_in, int n_hidden, int n_out,
     m->n_params = fl_model_n_params(n_in, n_hidden, n_out);
     m->p = params;
     m->g = grad;
-
+    
+    /* Зрізи в порядку розкладки: W1 b1 W2 b2 (див. fl_model.h). */
     float *p = params, *g = grad;
     m->w1 = p;  m->gw1 = g;
     p += (size_t)n_hidden * n_in;
@@ -46,6 +47,9 @@ void fl_model_init_weights(fl_model_t *m, uint32_t seed)
     uint32_t s = fl_rng_seed(seed);
     memset(m->p, 0, m->n_params * sizeof(float));   
     
+    /* Glorot uniform: межа = sqrt(6 / (fan_in + fan_out)).  Порядок
+     * обходу — частина контракту: хостове дзеркало тягне числа з
+     * генератора в тій самій послідовності. */
     float lim = sqrtf(6.0f / (float)(m->n_in + m->n_hidden));
     for (size_t i = 0; i < (size_t)m->n_hidden * m->n_in; i++) {
         m->w1[i] = (2.0f * fl_rng_uniform(&s) - 1.0f) * lim;
@@ -58,6 +62,7 @@ void fl_model_init_weights(fl_model_t *m, uint32_t seed)
 
 int fl_model_forward(fl_model_t *m, const float *x)
 {
+    /* Скритий шар: h = ReLU(W1 x + b1) */
     for (int j = 0; j < m->n_hidden; j++) {
         const float *w = m->w1 + (size_t)j * m->n_in;
         float acc = m->b1[j];
@@ -68,6 +73,7 @@ int fl_model_forward(fl_model_t *m, const float *x)
         m->h[j] = acc > 0.0f ? acc : 0.0f;
     }
 
+    /* Вихідний шар: logits = W2 h + b2 */
     float logit[FL_MAX_OUT];
     float max = -INFINITY;
     for (int k = 0; k < m->n_out; k++) {
@@ -82,6 +88,8 @@ int fl_model_forward(fl_model_t *m, const float *x)
         }
     }
 
+    /* Softmax із віднятим максимумом. Без цього expf переповнюється вже
+     * при logit ~ 30, а це реальне значення на цих даних. */
     float sum = 0.0f;
     for (int k = 0; k < m->n_out; k++) {
         m->prob[k] = expf(logit[k] - max);
@@ -119,7 +127,8 @@ float fl_model_accumulate(fl_model_t *m, const float *x, int y, int *ok)
     }
     const float loss = fl_model_loss(m, y);
 
-
+    /* Для softmax разом із перехресною ентропією похідна по логітах
+     * спрощується до p - onehot(y).  Тому їх і не рахують окремо. */
     float dlogit[FL_MAX_OUT];
     for (int k = 0; k < m->n_out; k++) {
         dlogit[k] = m->prob[k] - (k == y ? 1.0f : 0.0f);
@@ -136,7 +145,7 @@ float fl_model_accumulate(fl_model_t *m, const float *x, int y, int *ok)
 
     for (int j = 0; j < m->n_hidden; j++) {
         if (m->hpre[j] <= 0.0f) {
-            continue;                      
+            continue;                       /* похідна ReLU = 0 */
         }
         float d = 0.0f;
         for (int k = 0; k < m->n_out; k++) {
@@ -153,7 +162,8 @@ float fl_model_accumulate(fl_model_t *m, const float *x, int y, int *ok)
 
 void fl_model_sgd_step(fl_model_t *m, float lr, int batch)
 {
-
+    /* Ділення на batch саме тут: останній батч епохи може бути неповним,
+     * і дільник у нього інший. */
     const float scale = lr / (float)(batch > 0 ? batch : 1);
     for (size_t i = 0; i < m->n_params; i++) {
         m->p[i] -= scale * m->g[i];

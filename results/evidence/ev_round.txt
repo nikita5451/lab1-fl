@@ -1,0 +1,5 @@
+    0.427 serial < EV t=555310 op=setw bytes=4840 crc=f8692cac
+    0.430 serial < EV t=555313 op=fit_begin epochs=3 lr=0.3 batch=16 n=122
+    0.520 serial < EV t=555401 op=fit_end fits=1 ms=83 loss=0.8719 acc=0.7213 dw=2.8808 clip=1.0000
+    0.715 serial > EVAL
+    0.716 serial < EV t=555420 op=getw bytes=4840 crc=4b38e207

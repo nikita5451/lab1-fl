@@ -61,7 +61,7 @@ one-round: $(CORE)
 measure: $(CORE)
 	$(VPY) scripts/measure_device.py --port $(PORT)
 
-FLWR = cd host && $(CURDIR)/$(VENV)/bin/flwr run . local-simulation --run-config
+FLWR = cd host && PATH="$(CURDIR)/$(VENV)/bin:$$PATH" flwr run . local-simulation --stream --run-config
 
 fed-virtual: $(FULL)
 	$(FLWR) "repo-root='$(CURDIR)' results-dir='results/$(RUN)' board-partition=-1"

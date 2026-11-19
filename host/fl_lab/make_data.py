@@ -1,4 +1,32 @@
 #!/usr/bin/env python3
+"""Генерує готові файли даних: по одному на вузол + глобальний тестовий.
+
+Файли вже є в каталозі `data/`, тому запускати це потрібно лише якщо
+захочете інше розбиття чи іншу кількість вузлів:
+
+    python make_data.py                        # 4 вузли, нерівномірно
+    python make_data.py --clients 2 --iid      # 2 вузли, рівномірно
+    python make_data.py --alpha 0.1            # сильніший перекіс
+
+Формат файлу (той самий, що читає пристрій):
+
+    20 байтів заголовка, далі n разів по (64 байти ознак + 1 байт класу)
+
+Дані: UCI `Optical Recognition of Handwritten Digits` через
+`sklearn.datasets.load_digits` — постачається разом із пакетом, інтернет
+не потрібен. 1797 зображень 8x8, 10 класів, значення пікселів 0..16
+(кількість закрашених пікселів у блоці 4x4 вихідної карти 32x32).
+Масштабуються у повний діапазон uint8, щоб нормалізація `/255` на
+пристрої була тією самою, що й для майбутнього кадру з камери.
+
+`data_<i>.bin` прошивається на плату:
+
+    esptool --port <порт> write_flash <зсув розділу> data_0.bin
+
+`test.bin` на плату не йде: це глобальний тестовий набір, на якому сервер
+оцінює агреговану модель. Жоден вузол його не бачить.
+"""
+
 from __future__ import annotations
 
 import argparse
@@ -13,7 +41,12 @@ from fl_model_ref import build_data_file, parse_data_file  # noqa: E402
 
 def split_non_iid(y: np.ndarray, n_clients: int, alpha: float, seed: int,
                   min_per_client: int = 40) -> list[np.ndarray]:
+    """Розбиття Dirichlet: кожен клас ділиться між вузлами нерівномірно.
 
+    alpha -> велике: майже рівномірно; alpha = 0.1: у вузла два-три класи.
+    Повторюється, поки кожен вузол не отримає `min_per_client` семплів —
+    вузол із трьома семплами робить експеримент безглуздим.
+    """
     rng = np.random.default_rng(seed)
     for _ in range(200):
         buckets: list[list[int]] = [[] for _ in range(n_clients)]

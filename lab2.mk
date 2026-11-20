@@ -1,5 +1,5 @@
 SN_BIN   := PATH="$(CURDIR)/$(VENV)/bin:$$PATH"
-SN       := $(SN_BIN) flower-supernode --insecure --superlink 127.0.0.1:9092
+SN       := $(SN_BIN) flower-supernode --insecure --superlink 127.0.0.1:8000
 RUNCFG    = repo-root='$(CURDIR)' results-dir='results/$(EXP)' num-rounds=$(ROUNDS) min-nodes=$(MIN) round-delay=$(DELAY)
 EXP      ?= exp-b
 ROUNDS   ?= 10

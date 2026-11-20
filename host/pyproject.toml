@@ -26,7 +26,7 @@ clientapp = "fl_lab.client_app:app"
 [tool.flwr.app.config]
 seed = 1
 num-clients = 4
-num-rounds = 5
+num-rounds = 10
 local-epochs = 3
 lr = 0.3
 batch = 16
@@ -35,6 +35,8 @@ board-partition = -1
 board-backend = "serial"
 board-port = ""
 board-proc = ""
+min-nodes = 4
+round-delay = 0.0
 results-dir = "results/flwr-virtual"
 repo-root = ""              
 

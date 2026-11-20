@@ -76,3 +76,5 @@ check: $(CORE)
 
 plot: $(CORE)
 	$(VPY) scripts/plot_rounds.py results/$(RUN)
+
+-include lab2.mk

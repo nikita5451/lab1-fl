@@ -1,0 +1,7 @@
+.venv/
+firmware/build/
+firmware/sdkconfig
+firmware/sdkconfig.old
+firmware/host_test/proto_sim
+__pycache__/
+*.pyc

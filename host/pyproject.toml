@@ -8,7 +8,7 @@ version = "1.0.0"
 description = "ЛР1: федеративне навчання на ESP32 (Flower)"
 requires-python = ">=3.11"
 dependencies = [
-    "flwr[simulation]==1.20.0",
+    "flwr[simulation]==1.43.0",
     "numpy==2.2.6",
     "pyserial==3.5",
 ]
@@ -26,7 +26,7 @@ clientapp = "fl_lab.client_app:app"
 [tool.flwr.app.config]
 seed = 1
 num-clients = 4
-num-rounds = 5
+num-rounds = 10
 local-epochs = 3
 lr = 0.3
 batch = 16
@@ -35,11 +35,29 @@ board-partition = -1
 board-backend = "serial"
 board-port = ""
 board-proc = ""
+min-nodes = 4
+round-delay = 0.0
 results-dir = "results/flwr-virtual"
 repo-root = ""              
 
-[tool.flwr.federations]
-default = "local-simulation"
 
-[tool.flwr.federations.local-simulation]
-options.num-supernodes = 4
+#######################################################################
+# CONFIGURATION MIGRATION NOTICE:
+#
+# What was previously called "federation config" for SuperLink
+# connections in pyproject.toml has been renamed and moved.
+#
+# These settings are now **SuperLink connection configuration**
+# and are defined in the Flower configuration file.
+#
+# The entries below are commented out intentionally and are kept
+# only as a migration reference.
+#
+# Docs: https://flower.ai/docs/framework/ref-flower-configuration.html
+#######################################################################
+
+# [tool.flwr.federations]
+# default = "local-simulation"
+
+# [tool.flwr.federations.local-simulation]
+# options.num-supernodes = 4

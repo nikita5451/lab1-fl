@@ -19,6 +19,8 @@ fl_result_t fl_train(fl_model_t *m, fl_data_t *d, int epochs, float lr,
     }
 
     for (int e = 0; e < epochs; e++) {
+        /* Перемішування щоепохи, а не один раз: інакше батчі завжди
+         * однакові й SGD бачить ту саму послідовність градієнтів. */
         uint32_t s = fl_rng_seed(seed + (uint32_t)e);
         fl_rng_shuffle_u16(d->train_idx, d->n_train, &s);
 
@@ -41,6 +43,9 @@ fl_result_t fl_train(fl_model_t *m, fl_data_t *d, int epochs, float lr,
             fl_model_sgd_step(m, lr, (int)b);
             steps++;
         }
+        
+        /* Звітуємо останню епоху: вона відображає стан, у якому ваги
+         * поїдуть на сервер. */
         r.n = seen;
         r.steps = steps;
         r.loss = seen ? (float)(loss_sum / seen) : 0.0f;

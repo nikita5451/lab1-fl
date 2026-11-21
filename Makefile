@@ -38,7 +38,7 @@ flash-data: $(CORE)
 monitor: $(CORE)
 	$(VPY) -m serial.tools.miniterm $(PORT) 115200
 
-selftest:
+selftest: $(CORE)
 	cd firmware/host_test && $(MAKE)
 	cd host && PYTHONPATH=. $(VPY) -m fl_lab.fl_model_ref
 
@@ -61,7 +61,7 @@ one-round: $(CORE)
 measure: $(CORE)
 	$(VPY) scripts/measure_device.py --port $(PORT)
 
-FLWR = cd host && $(CURDIR)/$(VENV)/bin/flwr run . local-simulation --run-config
+FLWR = cd host && PATH="$(CURDIR)/$(VENV)/bin:$$PATH" flwr run . local-simulation --stream --run-config
 
 fed-virtual: $(FULL)
 	$(FLWR) "repo-root='$(CURDIR)' results-dir='results/$(RUN)' board-partition=-1"
@@ -76,3 +76,5 @@ check: $(CORE)
 
 plot: $(CORE)
 	$(VPY) scripts/plot_rounds.py results/$(RUN)
+
+-include lab2.mk

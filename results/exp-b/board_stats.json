@@ -1,0 +1,8 @@
+{
+  "fits": 10,
+  "setw": 10,
+  "getw": 10,
+  "evals": 10,
+  "w_rx_bytes": 48400,
+  "w_tx_bytes": 48400
+}

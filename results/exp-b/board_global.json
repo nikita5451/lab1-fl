@@ -1,0 +1,21 @@
+{
+  "weights": "../results/exp-b/final_weights.bin",
+  "device_n": 152,
+  "roundtrip_identical": true,
+  "crc": "71774190",
+  "device_eval_local_val_acc": 0.933333,
+  "device_eval_local_val_loss": 0.299762,
+  "test_acc_of_device_weights": 0.9387186629526463,
+  "test_class_acc_of_device_weights": [
+    0.9722222222222222,
+    0.9444444444444444,
+    0.9714285714285714,
+    0.8918918918918919,
+    0.9444444444444444,
+    0.9722222222222222,
+    1.0,
+    0.9722222222222222,
+    0.8571428571428571,
+    0.8611111111111112
+  ]
+}

@@ -1,6 +1,0 @@
-{"acc": 0.052924791086350974, "bytes_per_client": 0, "dw_server": 0.0, "loss": 2.426990032196045, "round": 0, "round_s": 0.0, "weights_crc": "f8692cac"}
-{"acc": 0.6545961002785515, "bytes_per_client": 9680, "dw_server": 3.7032800005210578, "loss": 1.1691713333129883, "round": 1, "round_s": 32.9524687560006, "weights_crc": "344eb40f"}
-{"acc": 0.8161559888579387, "bytes_per_client": 9680, "dw_server": 2.381288307127746, "loss": 0.6054626107215881, "round": 2, "round_s": 1.0137124940010835, "weights_crc": "bc385717"}
-{"acc": 0.9025069637883009, "bytes_per_client": 9680, "dw_server": 1.355821307879377, "loss": 0.3417966663837433, "round": 3, "round_s": 1.0155295399999886, "weights_crc": "78934a6c"}
-{"acc": 0.9164345403899722, "bytes_per_client": 9680, "dw_server": 0.9386160203085001, "loss": 0.28322675824165344, "round": 4, "round_s": 1.0129523959985818, "weights_crc": "8fa41f7f"}
-{"acc": 0.9220055710306406, "bytes_per_client": 9680, "dw_server": 0.7007163148041001, "loss": 0.23688581585884094, "round": 5, "round_s": 1.0136661889991956, "weights_crc": "38f12854"}

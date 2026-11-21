@@ -1,0 +1,17 @@
+{
+  "batch": 16,
+  "board-backend": "serial",
+  "board-partition": -1,
+  "board-port": "",
+  "board-proc": "",
+  "clip-norm": 0.0,
+  "local-epochs": 3,
+  "lr": 0.3,
+  "min-nodes": 1,
+  "num-clients": 4,
+  "num-rounds": 10,
+  "repo-root": "/home/nik/Desktop/Subjects/Fed_learn/Lab2",
+  "results-dir": "results/exp-a",
+  "round-delay": 0.0,
+  "seed": 1
+}

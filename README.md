@@ -1,68 +1,46 @@
-# ЛР1: федеративне навчання на ESP32-S3 (Seeed XIAO ESP32S3)
+# ЛР2: ESP32 як рівноправний вузол федерації (Seeed XIAO ESP32S3)
 
-Інфраструктура федеративного навчання: плата ESP32-S3 навчає невелику нейромережу 64 -> 16 -> 10 на локальних даних, а Flower керує федерацією з чотирьох клієнтів, де плата є клієнтом 0, решта віртуальні.
+Федеративне навчання, де сервер і кожен із чотирьох вузлів працюють окремими процесами Flower і з'єднуються через мережу. Вузол 0 обслуговує плату ESP32-S3 (шлюз на ПК), вузли 1-3 віртуальні. Для сервера плата нічим не відрізняється від віртуального вузла: роль вузла визначає лише `--node-config` при його запуску. Модель (64 -> 16 -> 10), дані, протокол плати і прошивка взяті з ЛР1 без змін.
 
 # Вимоги
 
-- Ubuntu 24.04, Docker (користувач у групах docker і dialout), Python 3.12 з пакетом python3-venv, make, git.
-- Плата Seeed XIAO ESP32S3 і кабель USB-C для передачі даних, порт з'являється як /dev/ttyACM0.
-- Версії закріплено: ESP-IDF v5.5.1 (docker/Dockerfile), Flower 1.43.0, numpy 2.2.6, pyserial 3.5, esptool 4.8.1 (host/requirements.txt, host/pyproject.toml).
-
-# Швидкий старт
-
-Усі команди виконуються з кореня репозиторію. Параметр PORT за замовчуванням /dev/ttyACM0.
+- Ubuntu 24.04, Python 3.12 з пакетом python3-venv, make, git.
+- Плата Seeed XIAO ESP32S3 з прошивкою і даними з ЛР1 (`data_0.bin` у розділі fldata), кабель USB-C для передачі даних, порт з'являється як /dev/ttyACM0.
+- Версії закріплено: Flower 1.43.0, numpy 2.2.6, pyserial 3.5 (host/requirements.txt, host/pyproject.toml).
+- З'єднання Flower до SuperLink: у файл, який показує `flwr config list`, додати
 
 ```
-make venv-core                      # віртуальне середовище для роботи з платою
-make selftest                       # перевірка наданого коду: CRC f8692cac і c40a1c43
-make sim-test                       # перевірка протоколу без плати
-make image build                    # образ Docker і збірка прошивки
-make flash PORT=/dev/ttyACM0        # прошивання програми
-make flash-data PORT=/dev/ttyACM0 DATA=data/data_0.bin   # дані у розділ fldata
-make monitor PORT=/dev/ttyACM0      # консоль плати, вихід Ctrl+]
-make measure PORT=/dev/ttyACM0      # вимірювання для таблиці звіту
-make one-round PORT=/dev/ttyACM0    # один раунд з комп'ютера
-make venv                           # додатково Flower
-make fed-virtual RUN=flwr-virtual   # федерація без плати
-make fed-board PORT=/dev/ttyACM0 RUN=flwr-board   # федерація з платою
-make check RUN=flwr-board           # шість перевірок федеративності
-make plot RUN=flwr-board            # графік точності
-make data-stats                     # статистика розбиття даних
+[superlink.lab2]
+address = "127.0.0.1:8000"
+insecure = true
 ```
 
-# Цілі Makefile
+# Цілі Makefile (lab2.mk)
 
 | Ціль | Що робить | Потрібна плата |
 |-|-|-|
-| selftest, sim-test | перевірка наданого коду й протоколу на хості | ні |
-| image, build | образ Docker з ESP-IDF і компіляція прошивки | ні |
-| flash, flash-data | запис програми та даних у плату з хоста | так |
-| monitor | консоль плати (діагностика: help, info, heap, restart) | так |
-| measure | час епохи й оцінки, дані для таблиці вимірювань | так |
-| one-round | INFO, SETW, FIT, GETW, EVAL з комп'ютера | так |
-| fed-virtual | Flower, усі клієнти віртуальні | ні |
-| fed-board | Flower, клієнт 0 це плата; перед прогоном RESET, після прогону читання лічильників | так |
-| check | шість перевірок федеративності за журналами | ні |
-| plot, data-stats | графік точності, розбиття даних | ні |
-| ref-virtual, ref-sim | еталонний FedAvg без Flower, для звірки | ні |
+| superlink | SuperLink (порт 8000) | ні |
+| node0 | SuperNode 0, backend="serial", порт PORT | так |
+| node0-sim | SuperNode 0, backend="sim", data_0.bin | ні |
+| node1, node2, node3 | SuperNode 1-3, backend="sim" (порти 9095-9097) | ні |
+| flwr-run | прогін: EXP, ROUNDS (10), MIN (4), DELAY (0.0) | залежить від вузла 0 |
+| board-reset | RESET плати перед прогоном | так |
+| board-read | лічильники плати після прогону у results/<EXP>/board_stats.json | так |
+| board-global | SETW фінальних ваг на плату, EVAL, GETW, точність на test.bin | так |
+| check-server | пошук слів serial, port, backend у коді сервера | ні |
+| lab2-table, lab2-plot | таблиця і графіки за results/exp-* | ні |
 
-# Структура репозиторію
+# Результати (10 раундів, 3 епохи, lr 0.3)
 
-docker/Dockerfile        закріплений образ ESP-IDF
-firmware/               проєкт ESP-IDF (partitions.csv, sdkconfig.defaults)
-  main/                 fl_rng, fl_model, fl_train, fl_crc, fl_b64,
-                        fl_store, fl_proto, esp_storage, main
-  host_test/            хостовий симулятор плати (те саме ядро протоколу)
-host/                   pyproject.toml, requirements, config/
-  fl_lab/               клієнт протоколу, Flower-застосунки, перевірка, тести
-scripts/                вимірювання, графік, порівняння прогонів, статистика даних
-data/                   data_0..3.bin, test.bin
-results/<прогін>/       rounds.jsonl, clients.jsonl, transcript.log, board_stats.json, config.json
-docs/                   interfaces.md, lab1-report.docx
-Makefile, README.md
+| Експеримент | Вузлів | Точність на test.bin | Клас 2 | Клас 5 | Клас 8 |
+|-|-|-|-|-|-|
+| А. плата сама | 1 | 0.5181 | 0.00 | 0.00 | 0.00 |
+| Б. федерація | 4 | 0.9387 | 0.97 | 0.97 | 0.86 |
+| В. вузол 0 на ПК | 4 | 0.9415 | 0.97 | 0.97 | 0.86 |
+| Г. плата від'єднана | 4, потім 3 | 0.9387 | 0.97 | 0.97 | 0.86 |
 
 # Відомі обмеження
 
+- SuperLink у Flower 1.43.0 слухає всі API на порту 8000, тому вузли підключаються до 127.0.0.1:8000, а не 9092 з методички.
 - Агрегація DeterministicFedAvg використовує внутрішній метод Flower і перевірена лише з Flower 1.43.0.
 - Відкриття послідовного порту виконується з DTR=RTS=True, інакше плата скидається при кожному відкритті.
-- Baseline-и (FL-09) і кліпінг (FL-11) у цій роботі не виконувались.

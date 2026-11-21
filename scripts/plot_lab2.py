@@ -17,9 +17,12 @@ def rows(d: str) -> list[dict]:
 def main(out_dir: str, a: str, b: str, g: str) -> None:
     out = Path(out_dir)
     fig, ax = plt.subplots(figsize=(6.4, 3.8))
-    for d, label in ((a, "А: плата сама"), (b, "Б: федерація"), (g, "Г: плату від'єднано")):
+    styles = ((a, "А: плата сама", "o", "-", 6), (b, "Б: федерація", "o", "-", 8), (g, "Г: плату від'єднано", "s", "--", 5))
+    for d, label, mk, ls, ms in styles:
         r = rows(d)
-        ax.plot([x["round"] for x in r], [x["acc"] for x in r], marker="o", label=label)
+        ax.plot([x["round"] for x in r], [x["acc"] for x in r], marker=mk, linestyle=ls, markersize=ms, label=label)
+    ax.axvline(3, color="gray", linestyle=":")
+    ax.text(3.1, 0.12, "кабель вийнято\nпісля раунду 3", fontsize=8, color="gray")
     ax.set_xlabel("раунд")
     ax.set_ylabel("точність на test.bin (сервер)")
     ax.set_ylim(0, 1)
@@ -36,9 +39,9 @@ def main(out_dir: str, a: str, b: str, g: str) -> None:
     ax.set_xticks(list(xs))
     ax.set_xlabel("клас (цифра)")
     ax.set_ylabel("точність на test.bin")
-    ax.set_ylim(0, 1.05)
+    ax.set_ylim(0, 1.2)
     ax.grid(alpha=.3, axis="y")
-    ax.legend(loc="lower right")
+    ax.legend(loc="upper center", ncol=2)
     fig.tight_layout()
     fig.savefig(out / "lab2-classes.png", dpi=150)
     print("збережено", out / "lab2-accuracy.png", out / "lab2-classes.png")
